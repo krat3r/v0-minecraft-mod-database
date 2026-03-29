@@ -61,6 +61,9 @@ export default function Home() {
               Not affiliated with Mojang or Microsoft.
             </p>
           </div>
+          <p className="mt-4 text-center text-xs text-muted-foreground sm:mt-0">
+            made with ❤️ by graveman
+          </p>
         </div>
       </footer>
     </div>
