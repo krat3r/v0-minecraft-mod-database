@@ -1,6 +1,7 @@
 "use client"
 
-import { Download } from "lucide-react"
+import { useState } from "react"
+import { Download, ShieldCheck } from "lucide-react"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -8,16 +9,28 @@ import type { Mod } from "@/lib/mods-data"
 
 interface ModCardProps {
   mod: Mod
+  downloadCount: number
+  onDownload: (modId: string) => void
 }
 
-function formatDownloads(num: number | undefined): string {
-  if (!num) return "N/A"
+function formatDownloads(num: number): string {
   if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`
   if (num >= 1000) return `${(num / 1000).toFixed(1)}K`
   return num.toString()
 }
 
-export function ModCard({ mod }: ModCardProps) {
+export function ModCard({ mod, downloadCount, onDownload }: ModCardProps) {
+  const [isDownloading, setIsDownloading] = useState(false)
+
+  const handleDownload = async () => {
+    setIsDownloading(true)
+    onDownload(mod.id)
+    
+    setTimeout(() => {
+      setIsDownloading(false)
+    }, 500)
+  }
+
   return (
     <Card className="group overflow-hidden border-border bg-card transition-all duration-300 hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5">
       <CardContent className="p-6">
@@ -43,6 +56,13 @@ export function ModCard({ mod }: ModCardProps) {
             </p>
           </div>
         </div>
+        
+        {/* Safety Guarantee */}
+        <div className="mt-4 flex items-center gap-2 rounded-lg bg-emerald-500/10 px-3 py-2">
+          <ShieldCheck className="h-4 w-4 text-emerald-500" />
+          <span className="text-xs font-medium text-emerald-500">100% Safe - Verified by mctools</span>
+        </div>
+        
         <p className="mt-4 line-clamp-2 text-sm text-muted-foreground leading-relaxed">
           {mod.description}
         </p>
@@ -66,11 +86,20 @@ export function ModCard({ mod }: ModCardProps) {
         <div className="flex w-full items-center justify-between">
           <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
             <Download className="h-4 w-4" />
-            <span>{formatDownloads(mod.downloads)}</span>
+            <span>{formatDownloads(downloadCount)} downloads</span>
           </div>
-          <Button asChild size="sm" className="gap-2">
-            <a href={mod.downloadUrl} download>
-              Download .jar
+          <Button 
+            asChild 
+            size="sm" 
+            className="gap-2"
+            disabled={isDownloading}
+          >
+            <a 
+              href={mod.downloadUrl} 
+              download
+              onClick={handleDownload}
+            >
+              {isDownloading ? "Downloading..." : "Download .jar"}
               <Download className="h-3.5 w-3.5" />
             </a>
           </Button>

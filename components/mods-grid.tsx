@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect, useCallback } from "react"
 import { mods, categories } from "@/lib/mods-data"
 import { ModCard } from "@/components/mod-card"
 import { SearchInput } from "@/components/search-input"
@@ -10,6 +10,40 @@ import { Package } from "lucide-react"
 export function ModsGrid() {
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedCategory, setSelectedCategory] = useState("All")
+  const [downloadCounts, setDownloadCounts] = useState<Record<string, number>>({})
+
+  // Fetch download counts on mount
+  useEffect(() => {
+    async function fetchDownloadCounts() {
+      try {
+        const response = await fetch("/api/downloads")
+        if (response.ok) {
+          const counts = await response.json()
+          setDownloadCounts(counts)
+        }
+      } catch (error) {
+        console.error("Failed to fetch download counts:", error)
+      }
+    }
+    
+    fetchDownloadCounts()
+  }, [])
+
+  // Handle download - increment count optimistically
+  const handleDownload = useCallback(async (modId: string) => {
+    // Optimistic update
+    setDownloadCounts((prev) => ({
+      ...prev,
+      [modId]: (prev[modId] || 0) + 1,
+    }))
+
+    // Track download in backend
+    try {
+      await fetch(`/api/downloads/${modId}`, { method: "POST" })
+    } catch (error) {
+      console.error("Failed to track download:", error)
+    }
+  }, [])
 
   const filteredMods = useMemo(() => {
     return mods.filter((mod) => {
@@ -47,7 +81,12 @@ export function ModsGrid() {
       {filteredMods.length > 0 ? (
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {filteredMods.map((mod) => (
-            <ModCard key={mod.id} mod={mod} />
+            <ModCard 
+              key={mod.id} 
+              mod={mod} 
+              downloadCount={downloadCounts[mod.id] || 0}
+              onDownload={handleDownload}
+            />
           ))}
         </div>
       ) : (
