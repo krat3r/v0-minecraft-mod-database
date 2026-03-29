@@ -8,7 +8,7 @@ const _geist = Geist({ subsets: ["latin"] });
 const _geistMono = Geist_Mono({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: 'ModVault - Minecraft Mod Database',
+  title: 'mctools - Minecraft Mod Database',
   description: 'Discover and download the best Minecraft mods. From performance optimizers to epic adventure expansions.',
   generator: 'v0.app',
   icons: {
