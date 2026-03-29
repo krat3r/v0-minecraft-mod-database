@@ -1,7 +1,7 @@
 "use client"
 
 import { useTheme } from "next-themes"
-import { useEffect, useState } from "react"
+import { useEffect, useState, useMemo } from "react"
 
 export function RainEffect() {
   const { resolvedTheme } = useTheme()
@@ -11,20 +11,33 @@ export function RainEffect() {
     setMounted(true)
   }, [])
 
+  // Generate rain drops with stable random values
+  const rainDrops = useMemo(() => {
+    return Array.from({ length: 60 }).map((_, i) => ({
+      id: i,
+      left: `${(i * 1.7) % 100}%`,
+      delay: `${(i * 0.05) % 2}s`,
+      duration: `${0.6 + (i % 5) * 0.1}s`,
+      height: `${12 + (i % 4) * 4}px`,
+    }))
+  }, [])
+
   if (!mounted || resolvedTheme !== "midnight") {
     return null
   }
 
   return (
     <div className="pointer-events-none absolute inset-0 overflow-hidden">
-      {Array.from({ length: 50 }).map((_, i) => (
+      {rainDrops.map((drop) => (
         <div
-          key={i}
-          className="rain-drop absolute h-4 w-px bg-gradient-to-b from-transparent via-primary/30 to-primary/10"
+          key={drop.id}
+          className="absolute w-px bg-gradient-to-b from-transparent via-sky-400/40 to-sky-300/20"
           style={{
-            left: `${Math.random() * 100}%`,
-            animationDelay: `${Math.random() * 2}s`,
-            animationDuration: `${0.8 + Math.random() * 0.4}s`,
+            left: drop.left,
+            top: "-20px",
+            height: drop.height,
+            animation: `rain-fall ${drop.duration} linear infinite`,
+            animationDelay: drop.delay,
           }}
         />
       ))}

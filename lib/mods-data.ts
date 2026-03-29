@@ -3,6 +3,7 @@
 // =====================================================
 // To add a new mod, simply add a new object to the array below
 // To change a mod's logo, update the 'logo' field with your image URL
+// downloadUrl should be a direct link to the .jar file
 // =====================================================
 
 export interface Mod {
@@ -12,7 +13,7 @@ export interface Mod {
   version: string
   category: string
   logo: string // URL to the mod's logo image
-  downloadUrl: string // MediaFire download link
+  downloadUrl: string // Direct .jar download link
   author: string
   minecraftVersions: string[]
   downloads?: number
@@ -26,7 +27,7 @@ export const mods: Mod[] = [
     version: "1.20.4",
     category: "Performance",
     logo: "https://images.unsplash.com/photo-1633957897986-70e83293f3ff?w=128&h=128&fit=crop",
-    downloadUrl: "https://www.mediafire.com/file/example1", // Replace with your MediaFire link
+    downloadUrl: "/mods/optifine-1.20.4.jar", // Replace with your direct .jar link
     author: "sp614x",
     minecraftVersions: ["1.20.4", "1.20.1", "1.19.4"],
     downloads: 150000000,
@@ -38,7 +39,7 @@ export const mods: Mod[] = [
     version: "0.5.8",
     category: "Performance",
     logo: "https://images.unsplash.com/photo-1618401471353-b98afee0b2eb?w=128&h=128&fit=crop",
-    downloadUrl: "https://www.mediafire.com/file/example2", // Replace with your MediaFire link
+    downloadUrl: "/mods/sodium-0.5.8.jar", // Replace with your direct .jar link
     author: "CaffeineMC",
     minecraftVersions: ["1.20.4", "1.20.1", "1.19.4"],
     downloads: 50000000,
@@ -50,7 +51,7 @@ export const mods: Mod[] = [
     version: "15.2.0",
     category: "Utility",
     logo: "https://images.unsplash.com/photo-1511512578047-dfb367046420?w=128&h=128&fit=crop",
-    downloadUrl: "https://www.mediafire.com/file/example3", // Replace with your MediaFire link
+    downloadUrl: "/mods/jei-15.2.0.jar", // Replace with your direct .jar link
     author: "mezz",
     minecraftVersions: ["1.20.4", "1.20.1", "1.19.4"],
     downloads: 200000000,
@@ -62,7 +63,7 @@ export const mods: Mod[] = [
     version: "0.5.1f",
     category: "Technology",
     logo: "https://images.unsplash.com/photo-1580894894513-541e068a3e2b?w=128&h=128&fit=crop",
-    downloadUrl: "https://www.mediafire.com/file/example4", // Replace with your MediaFire link
+    downloadUrl: "/mods/create-0.5.1f.jar", // Replace with your direct .jar link
     author: "simibubi",
     minecraftVersions: ["1.20.1", "1.19.2", "1.18.2"],
     downloads: 75000000,
@@ -74,7 +75,7 @@ export const mods: Mod[] = [
     version: "18.0.0",
     category: "World Gen",
     logo: "https://images.unsplash.com/photo-1518837695005-2083093ee35b?w=128&h=128&fit=crop",
-    downloadUrl: "https://www.mediafire.com/file/example5", // Replace with your MediaFire link
+    downloadUrl: "/mods/biomes-o-plenty-18.0.0.jar", // Replace with your direct .jar link
     author: "Forstride",
     minecraftVersions: ["1.20.4", "1.20.1", "1.19.4"],
     downloads: 100000000,
@@ -86,7 +87,7 @@ export const mods: Mod[] = [
     version: "4.3.2145",
     category: "Adventure",
     logo: "https://images.unsplash.com/photo-1542273917363-3b1817f69a2d?w=128&h=128&fit=crop",
-    downloadUrl: "https://www.mediafire.com/file/example6", // Replace with your MediaFire link
+    downloadUrl: "/mods/twilight-forest-4.3.2145.jar", // Replace with your direct .jar link
     author: "TeamTwilight",
     minecraftVersions: ["1.20.1", "1.19.4", "1.18.2"],
     downloads: 85000000,
@@ -98,7 +99,7 @@ export const mods: Mod[] = [
     version: "1.6.17",
     category: "Graphics",
     logo: "https://images.unsplash.com/photo-1507400492013-162706c8c05e?w=128&h=128&fit=crop",
-    downloadUrl: "https://www.mediafire.com/file/example7", // Replace with your MediaFire link
+    downloadUrl: "/mods/iris-shaders-1.6.17.jar", // Replace with your direct .jar link
     author: "coderbot",
     minecraftVersions: ["1.20.4", "1.20.1", "1.19.4"],
     downloads: 40000000,
@@ -110,7 +111,7 @@ export const mods: Mod[] = [
     version: "15.0.23",
     category: "Technology",
     logo: "https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=128&h=128&fit=crop",
-    downloadUrl: "https://www.mediafire.com/file/example8", // Replace with your MediaFire link
+    downloadUrl: "/mods/applied-energistics-15.0.23.jar", // Replace with your direct .jar link
     author: "AlgorithmX2",
     minecraftVersions: ["1.20.4", "1.20.1", "1.19.4"],
     downloads: 60000000,

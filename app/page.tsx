@@ -1,3 +1,4 @@
+import Link from "next/link"
 import { Pickaxe } from "lucide-react"
 import { ModsGrid } from "@/components/mods-grid"
 import { ThemeToggle } from "@/components/theme-toggle"
@@ -28,11 +29,17 @@ export default function Home() {
         <div className="relative mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
           <div className="text-center">
             <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl lg:text-5xl text-balance">
-              Find Your Perfect Mods
+              Find Your Perfect Mod
             </h2>
             <p className="mx-auto mt-4 max-w-2xl text-lg text-muted-foreground text-pretty">
               Discover and download the best Minecraft mods. From performance optimizers to epic adventure expansions.
             </p>
+            <Link 
+              href="/tutorial" 
+              className="mt-6 inline-block text-sm text-primary hover:text-primary/80 underline underline-offset-4 transition-colors"
+            >
+              New to mods? Learn how to install them
+            </Link>
           </div>
         </div>
       </section>

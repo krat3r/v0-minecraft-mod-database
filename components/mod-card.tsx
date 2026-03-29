@@ -1,6 +1,6 @@
 "use client"
 
-import { Download, ExternalLink } from "lucide-react"
+import { Download } from "lucide-react"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -69,13 +69,9 @@ export function ModCard({ mod }: ModCardProps) {
             <span>{formatDownloads(mod.downloads)}</span>
           </div>
           <Button asChild size="sm" className="gap-2">
-            <a
-              href={mod.downloadUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Download
-              <ExternalLink className="h-3.5 w-3.5" />
+            <a href={mod.downloadUrl} download>
+              Download .jar
+              <Download className="h-3.5 w-3.5" />
             </a>
           </Button>
         </div>
