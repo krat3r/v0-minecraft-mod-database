@@ -1,32 +1,45 @@
 "use client"
 
 import { useState, useMemo, useEffect, useCallback } from "react"
-import { mods, categories } from "@/lib/mods-data"
+import { categories, type Mod } from "@/lib/mods-data"
 import { ModCard } from "@/components/mod-card"
 import { SearchInput } from "@/components/search-input"
 import { CategoryFilter } from "@/components/category-filter"
-import { Package } from "lucide-react"
+import { Package, Loader2 } from "lucide-react"
 
 export function ModsGrid() {
+  const [mods, setMods] = useState<Mod[]>([])
+  const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedCategory, setSelectedCategory] = useState("All")
   const [downloadCounts, setDownloadCounts] = useState<Record<string, number>>({})
 
-  // Fetch download counts on mount
+  // Fetch mods and download counts on mount
   useEffect(() => {
-    async function fetchDownloadCounts() {
+    async function fetchData() {
       try {
-        const response = await fetch("/api/downloads")
-        if (response.ok) {
-          const counts = await response.json()
-          setDownloadCounts(counts)
+        const [modsResponse, countsResponse] = await Promise.all([
+          fetch("/api/mods"),
+          fetch("/api/downloads"),
+        ])
+
+        if (modsResponse.ok) {
+          const modsData = await modsResponse.json()
+          setMods(modsData)
+        }
+
+        if (countsResponse.ok) {
+          const countsData = await countsResponse.json()
+          setDownloadCounts(countsData)
         }
       } catch (error) {
-        console.error("Failed to fetch download counts:", error)
+        console.error("Failed to fetch data:", error)
+      } finally {
+        setLoading(false)
       }
     }
-    
-    fetchDownloadCounts()
+
+    fetchData()
   }, [])
 
   // Handle download - increment count optimistically
@@ -57,7 +70,15 @@ export function ModsGrid() {
 
       return matchesSearch && matchesCategory
     })
-  }, [searchQuery, selectedCategory])
+  }, [mods, searchQuery, selectedCategory])
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-16">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-8">
@@ -81,13 +102,25 @@ export function ModsGrid() {
       {filteredMods.length > 0 ? (
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {filteredMods.map((mod) => (
-            <ModCard 
-              key={mod.id} 
-              mod={mod} 
+            <ModCard
+              key={mod.id}
+              mod={mod}
               downloadCount={downloadCounts[mod.id] || 0}
               onDownload={handleDownload}
             />
           ))}
+        </div>
+      ) : mods.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-16 text-center">
+          <div className="rounded-full bg-muted p-4">
+            <Package className="h-8 w-8 text-muted-foreground" />
+          </div>
+          <h3 className="mt-4 text-lg font-semibold text-foreground">
+            No mods available
+          </h3>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Visit the admin panel to add mods to the database.
+          </p>
         </div>
       ) : (
         <div className="flex flex-col items-center justify-center py-16 text-center">
