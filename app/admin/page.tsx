@@ -2,10 +2,10 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { Pickaxe, Upload, Trash2, ArrowLeft, Plus, ImageIcon, FileArchive, Loader2 } from "lucide-react"
+import { Pickaxe, Upload, Trash2, ArrowLeft, Plus, ImageIcon, FileArchive, Loader2, CheckCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { categories, type Mod } from "@/lib/mods-data"
@@ -14,22 +14,19 @@ export default function AdminPage() {
   const [mods, setMods] = useState<Mod[]>([])
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
-  const [showForm, setShowForm] = useState(false)
+  const [success, setSuccess] = useState(false)
   
-  // Form state
-  const [formData, setFormData] = useState({
-    name: "",
-    description: "",
-    version: "",
-    category: "Utility",
-    author: "",
-    minecraftVersions: "",
-  })
+  // Form state - simplified and clear
+  const [modName, setModName] = useState("")
+  const [author, setAuthor] = useState("")
+  const [description, setDescription] = useState("")
+  const [version, setVersion] = useState("")
+  const [category, setCategory] = useState("Utility")
+  const [minecraftVersions, setMinecraftVersions] = useState("")
   const [jarFile, setJarFile] = useState<File | null>(null)
   const [logoFile, setLogoFile] = useState<File | null>(null)
   const [logoPreview, setLogoPreview] = useState<string | null>(null)
 
-  // Fetch mods on mount
   useEffect(() => {
     fetchMods()
   }, [])
@@ -61,18 +58,36 @@ export default function AdminPage() {
     }
   }
 
+  function resetForm() {
+    setModName("")
+    setAuthor("")
+    setDescription("")
+    setVersion("")
+    setCategory("Utility")
+    setMinecraftVersions("")
+    setJarFile(null)
+    setLogoFile(null)
+    setLogoPreview(null)
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     
     if (!jarFile) {
-      alert("Please upload a .jar file")
+      alert("Please select a .jar file to upload")
+      return
+    }
+
+    if (!modName.trim() || !author.trim()) {
+      alert("Please fill in the Mod Name and Author fields")
       return
     }
 
     setUploading(true)
+    setSuccess(false)
 
     try {
-      // Upload jar file
+      // Upload jar file to Vercel Blob
       const jarFormData = new FormData()
       jarFormData.append("file", jarFile)
       jarFormData.append("type", "jar")
@@ -107,17 +122,17 @@ export default function AdminPage() {
         }
       }
 
-      // Create mod entry
+      // Create mod entry in database
       const newMod: Mod = {
-        id: formData.name.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
-        name: formData.name,
-        description: formData.description,
-        version: formData.version,
-        category: formData.category,
+        id: modName.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+        name: modName,
+        description: description || "No description provided.",
+        version: version || "1.0.0",
+        category: category,
         logo: logoUrl,
         downloadUrl: jarData.url,
-        author: formData.author,
-        minecraftVersions: formData.minecraftVersions.split(",").map((v) => v.trim()),
+        author: author,
+        minecraftVersions: minecraftVersions ? minecraftVersions.split(",").map((v) => v.trim()) : ["1.20.4"],
         downloads: 0,
       }
 
@@ -132,24 +147,12 @@ export default function AdminPage() {
         throw new Error(error.error || "Failed to save mod")
       }
 
-      // Reset form
-      setFormData({
-        name: "",
-        description: "",
-        version: "",
-        category: "Utility",
-        author: "",
-        minecraftVersions: "",
-      })
-      setJarFile(null)
-      setLogoFile(null)
-      setLogoPreview(null)
-      setShowForm(false)
-      
-      // Refresh mods list
+      // Success!
+      setSuccess(true)
+      resetForm()
       fetchMods()
       
-      alert("Mod added successfully!")
+      setTimeout(() => setSuccess(false), 3000)
     } catch (error) {
       console.error("Failed to add mod:", error)
       alert(error instanceof Error ? error.message : "Failed to add mod")
@@ -192,7 +195,7 @@ export default function AdminPage() {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-sm">
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+        <div className="mx-auto flex h-16 max-w-5xl items-center justify-between px-4 sm:px-6 lg:px-8">
           <div className="flex items-center gap-3">
             <Link href="/" className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
@@ -216,218 +219,224 @@ export default function AdminPage() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h2 className="text-2xl font-bold text-foreground">Manage Mods</h2>
-            <p className="text-muted-foreground">Upload and manage your mod collection</p>
-          </div>
-          <div className="flex gap-2">
-            {mods.length === 0 && (
-              <Button variant="outline" onClick={seedDatabase}>
-                Seed Default Mods
-              </Button>
-            )}
-            <Button onClick={() => setShowForm(!showForm)} className="gap-2">
-              <Plus className="h-4 w-4" />
-              Add New Mod
-            </Button>
-          </div>
-        </div>
-
-        {/* Add Mod Form */}
-        {showForm && (
-          <Card className="mb-8 border-border">
-            <CardHeader>
-              <CardTitle>Add New Mod</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-foreground">Mod Name *</label>
-                    <Input
-                      required
-                      placeholder="e.g. OptiFine"
-                      value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-foreground">Author *</label>
-                    <Input
-                      required
-                      placeholder="e.g. sp614x"
-                      value={formData.author}
-                      onChange={(e) => setFormData({ ...formData, author: e.target.value })}
-                    />
-                  </div>
-                </div>
-
+      <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
+        {/* Add New Mod Section */}
+        <Card className="mb-8 border-primary/20 bg-card">
+          <CardHeader className="border-b border-border pb-6">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+                <Plus className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <CardTitle className="text-xl">Add New Mod</CardTitle>
+                <CardDescription>Upload a mod file and fill in the details below</CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="pt-6">
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Main Fields: Mod Name and Author */}
+              <div className="grid gap-6 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-foreground">Description *</label>
-                  <textarea
+                  <label className="text-sm font-semibold text-foreground">
+                    Mod Name <span className="text-destructive">*</span>
+                  </label>
+                  <Input
                     required
-                    className="flex min-h-20 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                    placeholder="Describe what this mod does..."
-                    value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    placeholder="Enter mod name (e.g. OptiFine)"
+                    value={modName}
+                    onChange={(e) => setModName(e.target.value)}
+                    className="h-11"
                   />
                 </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold text-foreground">
+                    Author <span className="text-destructive">*</span>
+                  </label>
+                  <Input
+                    required
+                    placeholder="Enter author name (e.g. sp614x)"
+                    value={author}
+                    onChange={(e) => setAuthor(e.target.value)}
+                    className="h-11"
+                  />
+                </div>
+              </div>
 
+              {/* File Uploads: .jar and Image */}
+              <div className="grid gap-6 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold text-foreground">
+                    Mod File (.jar) <span className="text-destructive">*</span>
+                  </label>
+                  <label className={`flex h-24 cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed transition-colors ${jarFile ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50 hover:bg-muted/50'}`}>
+                    <FileArchive className={`h-6 w-6 ${jarFile ? 'text-primary' : 'text-muted-foreground'}`} />
+                    <span className={`text-sm ${jarFile ? 'font-medium text-primary' : 'text-muted-foreground'}`}>
+                      {jarFile ? jarFile.name : "Click to select .jar file"}
+                    </span>
+                    <input
+                      type="file"
+                      accept=".jar"
+                      className="hidden"
+                      onChange={(e) => setJarFile(e.target.files?.[0] || null)}
+                    />
+                  </label>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold text-foreground">
+                    Mod Image <span className="text-muted-foreground font-normal">(optional)</span>
+                  </label>
+                  <label className={`flex h-24 cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed transition-colors ${logoFile ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50 hover:bg-muted/50'}`}>
+                    {logoPreview ? (
+                      <img src={logoPreview} alt="Preview" className="h-12 w-12 rounded-lg object-cover" />
+                    ) : (
+                      <ImageIcon className="h-6 w-6 text-muted-foreground" />
+                    )}
+                    <span className={`text-sm ${logoFile ? 'font-medium text-primary' : 'text-muted-foreground'}`}>
+                      {logoFile ? logoFile.name : "Click to select image"}
+                    </span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleLogoChange}
+                    />
+                  </label>
+                </div>
+              </div>
+
+              {/* Optional Details */}
+              <div className="space-y-4 rounded-lg border border-border bg-muted/30 p-4">
+                <p className="text-sm font-medium text-muted-foreground">Optional Details</p>
                 <div className="grid gap-4 sm:grid-cols-3">
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-foreground">Version *</label>
+                    <label className="text-sm text-foreground">Version</label>
                     <Input
-                      required
-                      placeholder="e.g. 1.0.0"
-                      value={formData.version}
-                      onChange={(e) => setFormData({ ...formData, version: e.target.value })}
+                      placeholder="1.0.0"
+                      value={version}
+                      onChange={(e) => setVersion(e.target.value)}
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-foreground">Category *</label>
+                    <label className="text-sm text-foreground">Category</label>
                     <select
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                      value={formData.category}
-                      onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      value={category}
+                      onChange={(e) => setCategory(e.target.value)}
                     >
-                      {categories.filter((c) => c !== "All").map((category) => (
-                        <option key={category} value={category}>
-                          {category}
-                        </option>
+                      {categories.filter((c) => c !== "All").map((cat) => (
+                        <option key={cat} value={cat}>{cat}</option>
                       ))}
                     </select>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-foreground">MC Versions *</label>
+                    <label className="text-sm text-foreground">MC Versions</label>
                     <Input
-                      required
-                      placeholder="1.20.4, 1.20.1, 1.19.4"
-                      value={formData.minecraftVersions}
-                      onChange={(e) => setFormData({ ...formData, minecraftVersions: e.target.value })}
+                      placeholder="1.20.4, 1.20.1"
+                      value={minecraftVersions}
+                      onChange={(e) => setMinecraftVersions(e.target.value)}
                     />
                   </div>
                 </div>
-
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-foreground">Mod File (.jar) *</label>
-                    <div className="flex items-center gap-2">
-                      <label className="flex h-10 flex-1 cursor-pointer items-center justify-center gap-2 rounded-md border border-dashed border-input bg-background px-3 text-sm text-muted-foreground transition-colors hover:border-primary hover:text-foreground">
-                        <FileArchive className="h-4 w-4" />
-                        {jarFile ? jarFile.name : "Choose .jar file"}
-                        <input
-                          type="file"
-                          accept=".jar"
-                          className="hidden"
-                          onChange={(e) => setJarFile(e.target.files?.[0] || null)}
-                        />
-                      </label>
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-foreground">Logo Image (optional)</label>
-                    <div className="flex items-center gap-2">
-                      {logoPreview && (
-                        <img
-                          src={logoPreview}
-                          alt="Logo preview"
-                          className="h-10 w-10 rounded-md object-cover"
-                        />
-                      )}
-                      <label className="flex h-10 flex-1 cursor-pointer items-center justify-center gap-2 rounded-md border border-dashed border-input bg-background px-3 text-sm text-muted-foreground transition-colors hover:border-primary hover:text-foreground">
-                        <ImageIcon className="h-4 w-4" />
-                        {logoFile ? logoFile.name : "Choose logo image"}
-                        <input
-                          type="file"
-                          accept="image/*"
-                          className="hidden"
-                          onChange={handleLogoChange}
-                        />
-                      </label>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex gap-2">
-                  <Button type="submit" disabled={uploading} className="gap-2">
-                    {uploading ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Uploading...
-                      </>
-                    ) : (
-                      <>
-                        <Upload className="h-4 w-4" />
-                        Upload Mod
-                      </>
-                    )}
-                  </Button>
-                  <Button type="button" variant="outline" onClick={() => setShowForm(false)}>
-                    Cancel
-                  </Button>
-                </div>
-              </form>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Mods List */}
-        {loading ? (
-          <div className="flex items-center justify-center py-16">
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-          </div>
-        ) : mods.length === 0 ? (
-          <Card className="border-border">
-            <CardContent className="flex flex-col items-center justify-center py-16 text-center">
-              <div className="rounded-full bg-muted p-4">
-                <FileArchive className="h-8 w-8 text-muted-foreground" />
-              </div>
-              <h3 className="mt-4 text-lg font-semibold text-foreground">No mods yet</h3>
-              <p className="mt-2 text-sm text-muted-foreground">
-                Click &quot;Seed Default Mods&quot; to load example mods, or add your own.
-              </p>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="space-y-4">
-            {mods.map((mod) => (
-              <Card key={mod.id} className="border-border">
-                <CardContent className="flex items-center gap-4 p-4">
-                  <img
-                    src={mod.logo}
-                    alt={`${mod.name} logo`}
-                    className="h-14 w-14 rounded-lg object-cover"
+                <div className="space-y-2">
+                  <label className="text-sm text-foreground">Description</label>
+                  <textarea
+                    className="flex min-h-16 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    placeholder="What does this mod do?"
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
                   />
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-semibold text-foreground">{mod.name}</h3>
-                      <Badge variant="secondary">{mod.category}</Badge>
-                      <Badge variant="outline">v{mod.version}</Badge>
-                    </div>
-                    <p className="text-sm text-muted-foreground">by {mod.author}</p>
-                    <p className="mt-1 line-clamp-1 text-sm text-muted-foreground">
-                      {mod.description}
-                    </p>
+                </div>
+              </div>
+
+              {/* Submit Button */}
+              <div className="flex items-center gap-4">
+                <Button type="submit" disabled={uploading} size="lg" className="gap-2">
+                  {uploading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Uploading...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="h-4 w-4" />
+                      Add Mod
+                    </>
+                  )}
+                </Button>
+                {success && (
+                  <div className="flex items-center gap-2 text-sm font-medium text-green-600">
+                    <CheckCircle className="h-4 w-4" />
+                    Mod added successfully!
                   </div>
-                  <Button
-                    variant="destructive"
-                    size="icon"
-                    onClick={() => deleteMod(mod.id)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
+                )}
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+
+        {/* Existing Mods Section */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-foreground">Your Mods ({mods.length})</h2>
+            {mods.length === 0 && (
+              <Button variant="outline" size="sm" onClick={seedDatabase}>
+                Load Example Mods
+              </Button>
+            )}
           </div>
-        )}
+
+          {loading ? (
+            <div className="flex items-center justify-center py-16">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+          ) : mods.length === 0 ? (
+            <Card className="border-dashed">
+              <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+                <FileArchive className="h-10 w-10 text-muted-foreground" />
+                <h3 className="mt-4 font-semibold text-foreground">No mods yet</h3>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Add your first mod using the form above
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-3">
+              {mods.map((mod) => (
+                <Card key={mod.id} className="border-border transition-colors hover:border-border/80">
+                  <CardContent className="flex items-center gap-4 p-4">
+                    <img
+                      src={mod.logo}
+                      alt={`${mod.name} logo`}
+                      className="h-14 w-14 rounded-lg object-cover"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h3 className="font-semibold text-foreground">{mod.name}</h3>
+                        <Badge variant="secondary">{mod.category}</Badge>
+                        <Badge variant="outline">v{mod.version}</Badge>
+                      </div>
+                      <p className="text-sm text-muted-foreground">by {mod.author}</p>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="text-muted-foreground hover:text-destructive"
+                      onClick={() => deleteMod(mod.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
       </main>
 
       {/* Footer */}
       <footer className="border-t border-border bg-muted/30 mt-16">
-        <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
           <p className="text-center text-xs text-muted-foreground">
             made with ❤️ by graveman
           </p>
