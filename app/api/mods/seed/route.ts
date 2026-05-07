@@ -1,5 +1,5 @@
 import { Redis } from "@upstash/redis"
-import { NextResponse } from "next/server"
+import { NextRequest, NextResponse } from "next/server"
 import { mods } from "@/lib/mods-data"
 
 const redis = new Redis({
@@ -9,8 +9,23 @@ const redis = new Redis({
 
 const MODS_KEY = "mctools:mods"
 
-// POST - Seed the database with default mods (run once)
-export async function POST() {
+// Helper to verify admin password from Authorization header
+function verifyAdmin(request: NextRequest): boolean {
+  const authHeader = request.headers.get("Authorization")
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return false
+  }
+  const password = authHeader.slice(7) // Remove "Bearer " prefix
+  return password === process.env.ADMIN_PASSWORD
+}
+
+// POST - Seed the database with default mods (protected - requires admin password)
+export async function POST(request: NextRequest) {
+  // Verify admin password
+  if (!verifyAdmin(request)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
+
   try {
     const existingMods = await redis.get(MODS_KEY)
     

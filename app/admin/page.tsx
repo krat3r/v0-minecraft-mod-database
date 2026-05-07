@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import Link from "next/link"
 import { Pickaxe, Upload, Trash2, ArrowLeft, Plus, ImageIcon, FileArchive, Loader2, CheckCircle, Lock, LogOut } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -11,11 +11,13 @@ import { ThemeToggle } from "@/components/theme-toggle"
 import { categories, type Mod } from "@/lib/mods-data"
 
 export default function AdminPage() {
-  // Auth state
+  // Auth state - store actual password for API calls, not just a boolean
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [password, setPassword] = useState("")
   const [authError, setAuthError] = useState("")
   const [authLoading, setAuthLoading] = useState(false)
+  // Store the verified password for API calls (kept in memory only, not in sessionStorage)
+  const adminPasswordRef = useRef<string>("")
 
   const [mods, setMods] = useState<Mod[]>([])
   const [loading, setLoading] = useState(true)
@@ -33,18 +35,12 @@ export default function AdminPage() {
   const [logoFile, setLogoFile] = useState<File | null>(null)
   const [logoPreview, setLogoPreview] = useState<string | null>(null)
 
-  // Check for existing session on mount
-  useEffect(() => {
-    const auth = sessionStorage.getItem("mctools_admin_auth")
-    if (auth === "true") {
-      setIsAuthenticated(true)
-    }
-  }, [])
-
   // Fetch mods when authenticated
   useEffect(() => {
     if (isAuthenticated) {
       fetchMods()
+    } else {
+      setLoading(false)
     }
   }, [isAuthenticated])
 
@@ -61,8 +57,10 @@ export default function AdminPage() {
       })
 
       if (res.ok) {
+        // Store password in ref for API calls (memory only, not exposed to client)
+        adminPasswordRef.current = password
         setIsAuthenticated(true)
-        sessionStorage.setItem("mctools_admin_auth", "true")
+        setPassword("") // Clear the input field
       } else {
         setAuthError("Invalid password")
       }
@@ -75,8 +73,16 @@ export default function AdminPage() {
 
   function handleLogout() {
     setIsAuthenticated(false)
-    sessionStorage.removeItem("mctools_admin_auth")
+    adminPasswordRef.current = ""
     setPassword("")
+    setMods([])
+  }
+
+  // Helper to get auth headers
+  function getAuthHeaders(): HeadersInit {
+    return {
+      "Authorization": `Bearer ${adminPasswordRef.current}`,
+    }
   }
 
   async function fetchMods() {
@@ -95,7 +101,17 @@ export default function AdminPage() {
 
   async function seedDatabase() {
     try {
-      const response = await fetch("/api/mods/seed", { method: "POST" })
+      const response = await fetch("/api/mods/seed", { 
+        method: "POST",
+        headers: getAuthHeaders(),
+      })
+      
+      if (response.status === 401) {
+        handleLogout()
+        setAuthError("Session expired. Please log in again.")
+        return
+      }
+      
       const data = await response.json()
       if (data.success) {
         fetchMods()
@@ -142,8 +158,15 @@ export default function AdminPage() {
       
       const jarResponse = await fetch("/api/upload", {
         method: "POST",
+        headers: getAuthHeaders(),
         body: jarFormData,
       })
+      
+      if (jarResponse.status === 401) {
+        handleLogout()
+        setAuthError("Session expired. Please log in again.")
+        return
+      }
       
       if (!jarResponse.ok) {
         throw new Error("Failed to upload .jar file")
@@ -161,6 +184,7 @@ export default function AdminPage() {
         
         const logoResponse = await fetch("/api/upload", {
           method: "POST",
+          headers: getAuthHeaders(),
           body: logoFormData,
         })
         
@@ -186,9 +210,18 @@ export default function AdminPage() {
 
       const modResponse = await fetch("/api/mods", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          ...getAuthHeaders(),
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify(newMod),
       })
+
+      if (modResponse.status === 401) {
+        handleLogout()
+        setAuthError("Session expired. Please log in again.")
+        return
+      }
 
       if (!modResponse.ok) {
         const error = await modResponse.json()
@@ -215,9 +248,18 @@ export default function AdminPage() {
     try {
       const response = await fetch("/api/mods", {
         method: "DELETE",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          ...getAuthHeaders(),
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({ id: modId }),
       })
+
+      if (response.status === 401) {
+        handleLogout()
+        setAuthError("Session expired. Please log in again.")
+        return
+      }
 
       if (response.ok) {
         setMods((prev) => prev.filter((mod) => mod.id !== modId))
@@ -266,6 +308,7 @@ export default function AdminPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Enter admin password"
                   className="h-11"
+                  autoComplete="current-password"
                 />
               </div>
               {authError && (
@@ -520,15 +563,14 @@ export default function AdminPage() {
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
                         <h3 className="font-semibold text-foreground">{mod.name}</h3>
-                        <Badge variant="secondary">{mod.category}</Badge>
-                        <Badge variant="outline">v{mod.version}</Badge>
+                        <Badge variant="secondary" className="text-xs">{mod.category}</Badge>
                       </div>
                       <p className="text-sm text-muted-foreground">by {mod.author}</p>
                     </div>
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="text-muted-foreground hover:text-destructive"
+                      className="shrink-0 text-muted-foreground hover:text-destructive"
                       onClick={() => deleteMod(mod.id)}
                     >
                       <Trash2 className="h-4 w-4" />
@@ -540,15 +582,6 @@ export default function AdminPage() {
           )}
         </div>
       </main>
-
-      {/* Footer */}
-      <footer className="border-t border-border bg-muted/30 mt-16">
-        <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
-          <p className="text-center text-xs text-muted-foreground">
-            made with ❤️ by graveman
-          </p>
-        </div>
-      </footer>
     </div>
   )
 }

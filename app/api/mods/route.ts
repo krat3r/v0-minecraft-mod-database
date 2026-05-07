@@ -1,5 +1,5 @@
 import { Redis } from "@upstash/redis"
-import { NextResponse } from "next/server"
+import { NextRequest, NextResponse } from "next/server"
 import type { Mod } from "@/lib/mods-data"
 
 const redis = new Redis({
@@ -9,7 +9,17 @@ const redis = new Redis({
 
 const MODS_KEY = "mctools:mods"
 
-// GET - Fetch all mods from Redis
+// Helper to verify admin password from Authorization header
+function verifyAdmin(request: NextRequest): boolean {
+  const authHeader = request.headers.get("Authorization")
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return false
+  }
+  const password = authHeader.slice(7) // Remove "Bearer " prefix
+  return password === process.env.ADMIN_PASSWORD
+}
+
+// GET - Fetch all mods from Redis (public - no auth needed)
 export async function GET() {
   try {
     const mods = await redis.get<Mod[]>(MODS_KEY)
@@ -20,8 +30,13 @@ export async function GET() {
   }
 }
 
-// POST - Add a new mod
-export async function POST(request: Request) {
+// POST - Add a new mod (protected - requires admin password)
+export async function POST(request: NextRequest) {
+  // Verify admin password
+  if (!verifyAdmin(request)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
+
   try {
     const newMod: Mod = await request.json()
     
@@ -55,8 +70,13 @@ export async function POST(request: Request) {
   }
 }
 
-// DELETE - Remove a mod by ID
-export async function DELETE(request: Request) {
+// DELETE - Remove a mod by ID (protected - requires admin password)
+export async function DELETE(request: NextRequest) {
+  // Verify admin password
+  if (!verifyAdmin(request)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
+
   try {
     const { id } = await request.json()
     
