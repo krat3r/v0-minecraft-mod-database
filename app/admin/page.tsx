@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { Pickaxe, Upload, Trash2, ArrowLeft, Plus, ImageIcon, FileArchive, Loader2, CheckCircle } from "lucide-react"
+import { Pickaxe, Upload, Trash2, ArrowLeft, Plus, ImageIcon, FileArchive, Loader2, CheckCircle, Lock, LogOut } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
@@ -11,12 +11,18 @@ import { ThemeToggle } from "@/components/theme-toggle"
 import { categories, type Mod } from "@/lib/mods-data"
 
 export default function AdminPage() {
+  // Auth state
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [password, setPassword] = useState("")
+  const [authError, setAuthError] = useState("")
+  const [authLoading, setAuthLoading] = useState(false)
+
   const [mods, setMods] = useState<Mod[]>([])
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
   const [success, setSuccess] = useState(false)
   
-  // Form state - simplified and clear
+  // Form state
   const [modName, setModName] = useState("")
   const [author, setAuthor] = useState("")
   const [description, setDescription] = useState("")
@@ -27,9 +33,51 @@ export default function AdminPage() {
   const [logoFile, setLogoFile] = useState<File | null>(null)
   const [logoPreview, setLogoPreview] = useState<string | null>(null)
 
+  // Check for existing session on mount
   useEffect(() => {
-    fetchMods()
+    const auth = sessionStorage.getItem("mctools_admin_auth")
+    if (auth === "true") {
+      setIsAuthenticated(true)
+    }
   }, [])
+
+  // Fetch mods when authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchMods()
+    }
+  }, [isAuthenticated])
+
+  async function handleLogin(e: React.FormEvent) {
+    e.preventDefault()
+    setAuthLoading(true)
+    setAuthError("")
+
+    try {
+      const res = await fetch("/api/admin/auth", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password }),
+      })
+
+      if (res.ok) {
+        setIsAuthenticated(true)
+        sessionStorage.setItem("mctools_admin_auth", "true")
+      } else {
+        setAuthError("Invalid password")
+      }
+    } catch {
+      setAuthError("Authentication failed")
+    } finally {
+      setAuthLoading(false)
+    }
+  }
+
+  function handleLogout() {
+    setIsAuthenticated(false)
+    sessionStorage.removeItem("mctools_admin_auth")
+    setPassword("")
+  }
 
   async function fetchMods() {
     try {
@@ -191,6 +239,61 @@ export default function AdminPage() {
     }
   }
 
+  // Login Screen
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-primary/10">
+              <Lock className="h-7 w-7 text-primary" />
+            </div>
+            <CardTitle className="text-xl">Admin Access</CardTitle>
+            <CardDescription>
+              Enter your admin password to manage mods
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleLogin} className="space-y-4">
+              <div className="space-y-2">
+                <label htmlFor="password" className="text-sm font-medium text-foreground">
+                  Password
+                </label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter admin password"
+                  className="h-11"
+                />
+              </div>
+              {authError && (
+                <p className="text-sm text-destructive">{authError}</p>
+              )}
+              <Button type="submit" className="w-full h-11" disabled={authLoading}>
+                {authLoading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Verifying...
+                  </>
+                ) : (
+                  "Login"
+                )}
+              </Button>
+            </form>
+            <div className="mt-6 text-center">
+              <Link href="/" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                Back to mctools
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  // Admin Panel (authenticated)
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -207,14 +310,18 @@ export default function AdminPage() {
               </div>
             </Link>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
             <Link href="/">
               <Button variant="ghost" size="sm" className="gap-2">
                 <ArrowLeft className="h-4 w-4" />
-                Back to Site
+                <span className="hidden sm:inline">Back to Site</span>
               </Button>
             </Link>
-            <ThemeToggle />
+            <Button variant="outline" size="sm" onClick={handleLogout} className="gap-2">
+              <LogOut className="h-4 w-4" />
+              <span className="hidden sm:inline">Logout</span>
+            </Button>
           </div>
         </div>
       </header>
