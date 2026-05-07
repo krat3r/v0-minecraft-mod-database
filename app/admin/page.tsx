@@ -174,8 +174,8 @@ export default function AdminPage() {
       
       const jarData = await jarResponse.json()
 
-      // Upload logo if provided
-      let logoUrl = "https://images.unsplash.com/photo-1633957897986-70e83293f3ff?w=128&h=128&fit=crop"
+      // Upload logo if provided - use pathname for private blob
+      let logoPathname = ""
       
       if (logoFile) {
         const logoFormData = new FormData()
@@ -190,19 +190,19 @@ export default function AdminPage() {
         
         if (logoResponse.ok) {
           const logoData = await logoResponse.json()
-          logoUrl = logoData.url
+          logoPathname = logoData.pathname
         }
       }
 
-      // Create mod entry in database
+      // Create mod entry in database - use pathnames for private blob storage
       const newMod: Mod = {
         id: modName.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
         name: modName,
         description: description || "No description provided.",
         version: version || "1.0.0",
         category: category,
-        logo: logoUrl,
-        downloadUrl: jarData.url,
+        logo: logoPathname ? `/api/file?pathname=${encodeURIComponent(logoPathname)}` : "https://images.unsplash.com/photo-1633957897986-70e83293f3ff?w=128&h=128&fit=crop",
+        downloadUrl: `/api/file?pathname=${encodeURIComponent(jarData.pathname)}`,
         author: author,
         minecraftVersions: minecraftVersions ? minecraftVersions.split(",").map((v) => v.trim()) : ["1.20.4"],
         downloads: 0,

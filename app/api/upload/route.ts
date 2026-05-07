@@ -41,13 +41,14 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Upload to Vercel Blob
+    // Upload to Vercel Blob (private store)
     const folder = type === "jar" ? "mods" : "logos"
     const blob = await put(`${folder}/${file.name}`, file, {
-      access: "public",
+      access: "private",
     })
 
-    return NextResponse.json({ url: blob.url, pathname: blob.pathname })
+    // Return pathname for private blob access via our file serving route
+    return NextResponse.json({ pathname: blob.pathname })
   } catch (error) {
     console.error("Upload error:", error)
     return NextResponse.json({ error: "Upload failed" }, { status: 500 })
