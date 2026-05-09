@@ -30,16 +30,21 @@ export function ModsGrid() {
 
         if (countsResponse.ok) {
           const countsData = await countsResponse.json()
+          console.log("[v0] Download counts fetched:", countsData)
           setDownloadCounts(countsData)
         }
       } catch (error) {
-        console.error("Failed to fetch data:", error)
+        console.error("[v0] Failed to fetch data:", error)
       } finally {
         setLoading(false)
       }
     }
 
     fetchData()
+    
+    // Re-fetch download counts every 10 seconds to stay up to date
+    const interval = setInterval(fetchData, 10000)
+    return () => clearInterval(interval)
   }, [])
 
   // Handle download - increment count optimistically

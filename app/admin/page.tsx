@@ -93,10 +93,12 @@ export default function AdminPage() {
         setMods(data)
       }
     } catch (error) {
-      console.error("Failed to fetch mods:", error)
-    } finally {
-      setLoading(false)
+      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred"
+      console.error("[v0] Upload error:", errorMessage)
+      alert(`Upload failed: ${errorMessage}`)
+      setUploading(false)
     }
+  }
   }
 
   async function seedDatabase() {

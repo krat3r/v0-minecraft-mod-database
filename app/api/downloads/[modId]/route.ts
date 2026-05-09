@@ -1,5 +1,10 @@
-import { redis } from "@/lib/redis"
+import { Redis } from "@upstash/redis"
 import { NextResponse } from "next/server"
+
+const redis = new Redis({
+  url: process.env.KV_REST_API_URL!,
+  token: process.env.KV_REST_API_TOKEN!,
+})
 
 // POST - increment download count
 export async function POST(
@@ -9,9 +14,10 @@ export async function POST(
   try {
     const { modId } = await params
     const newCount = await redis.incr(`downloads:${modId}`)
+    console.log(`[v0] Download count for ${modId} incremented to ${newCount}`)
     return NextResponse.json({ count: newCount })
   } catch (error) {
-    console.error("Failed to increment download count:", error)
+    console.error("[v0] Failed to increment download count:", error)
     return NextResponse.json({ error: "Failed to track download" }, { status: 500 })
   }
 }
@@ -23,10 +29,10 @@ export async function GET(
 ) {
   try {
     const { modId } = await params
-    const count = await redis.get<number>(`downloads:${modId}`) ?? 0
+    const count = (await redis.get<number>(`downloads:${modId}`)) ?? 0
     return NextResponse.json({ count })
   } catch (error) {
-    console.error("Failed to fetch download count:", error)
+    console.error("[v0] Failed to fetch download count:", error)
     return NextResponse.json({ count: 0 }, { status: 500 })
   }
 }
