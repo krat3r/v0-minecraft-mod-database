@@ -41,10 +41,11 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Upload to Vercel Blob (private store)
+    // Upload to Vercel Blob (private store) with random suffix to avoid conflicts
     const folder = type === "jar" ? "mods" : "logos"
     const blob = await put(`${folder}/${file.name}`, file, {
       access: "private",
+      addRandomSuffix: true,
     })
 
     // Return pathname for private blob access via our file serving route
