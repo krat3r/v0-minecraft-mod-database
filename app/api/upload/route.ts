@@ -50,7 +50,8 @@ export async function POST(request: NextRequest) {
     // Return pathname for private blob access via our file serving route
     return NextResponse.json({ pathname: blob.pathname })
   } catch (error) {
-    console.error("Upload error:", error)
-    return NextResponse.json({ error: "Upload failed" }, { status: 500 })
+    console.error("[v0] Upload error:", error)
+    const errorMessage = error instanceof Error ? error.message : "Unknown error"
+    return NextResponse.json({ error: `Upload failed: ${errorMessage}` }, { status: 500 })
   }
 }

@@ -169,7 +169,8 @@ export default function AdminPage() {
       }
       
       if (!jarResponse.ok) {
-        throw new Error("Failed to upload .jar file")
+        const errorData = await jarResponse.json().catch(() => ({ error: "Unknown error" }))
+        throw new Error(errorData.error || `Upload failed with status ${jarResponse.status}`)
       }
       
       const jarData = await jarResponse.json()
