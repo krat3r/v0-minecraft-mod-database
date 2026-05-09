@@ -99,7 +99,6 @@ export default function AdminPage() {
       setUploading(false)
     }
   }
-  }
 
   async function seedDatabase() {
     try {
